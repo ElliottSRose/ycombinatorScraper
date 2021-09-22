@@ -20,6 +20,12 @@ class Item:
         self.numComments = numComments
         self.points      = points
 
+    def checkAttribute(self, attr):
+        if hasattr(self, attr):
+            return getattr(self, attr)
+        else:
+            return setattr(self, attr, 0)
+
     def setTitle(self, title):
         self.title = title
 
@@ -27,90 +33,142 @@ class Item:
         return self.title
 
     def setTitleLength(self):
-        self.titleLength = len(self.title)
+        self.titleLength = len(self.title.split())
 
     def getTitleLength(self):
-        if hasattr(self, 'title'):
-            self.setTitleLength()
-            return self.titleLength
-        else:
-            print ('Title has not been set')
+        return self.checkAttribute("titleLength")
 
     def setOrderNum(self, orderNum):
         self.orderNum = orderNum
 
     def getOrderNum(self):
-        return self.orderNum
+        return self.checkAttribute("orderNum")
 
-    def setNumCommments(self, numComments):
+    def setNumComments(self, numComments):
         self.numComments = numComments
 
     def getNumComments(self):
-        return self.numComments
+        return self.checkAttribute("numComments")
 
     def setPoints(self, points):
         self.points = points
 
     def getPoints(self):
-        return self.points
+        return self.checkAttribute("points")
 
 
 class Scraper:
+    #Scrape data using beautiful soup methods and create our lists
     page = requests.get("https://news.ycombinator.com/")
     soup = BeautifulSoup(page.content, 'lxml')
+
     def __init__(self):
         self.objList = []
+        self.longerThan= []
+        self.lessThan = []
 
     def attachOrderNum(self, entry, obj):
         obj.setOrderNum(entry.find('span','rank').text)
-        print(obj.getOrderNum())
 
     def attachTitle(self, entry, obj):
         obj.setTitle(entry.find('a','storylink').text)
-        print(obj.getTitle())
 
     def formatData(self, data):
         # pull text out of tag, split into list to get number, and format as int
+        # if there is a valid entry it, will have a number and a word, therfore length>1
         if(len(data.text.split())>1):
             return int(data.text.split()[0])
         else:
             return 0
 
+    def attachTitleLen(self, obj):
+        obj.setTitleLength()
+
     def attachPoints(self, entry, obj):
+        # load the point count onto our object
         data = entry.next_sibling.find('span','score')
         if(data):
             data = self.formatData(data)
             obj.setPoints(data)
-            print(obj.getPoints())
+        else:
+            obj.setNumComments(0)
 
     def attachNumComments(self, entry, obj):
         data = entry.next_sibling.select('a:nth-of-type(3)')
         if(data):
             # use index because list of 1 is returned from nth type
-            data = data[0]
-            data = self.formatData(data)
-            obj.setNumCommments(data)
-            print(obj.getNumComments())
+            data = self.formatData(data[0])
+            obj.setNumComments(data)
+        else:
+            obj.setNumComments(0)
+
 
     def setAttributes(self, entry, obj):
-        # set order number
+        # add all of a the required attributes to our item object
         self.attachOrderNum(entry, obj)
-        # set title
         self.attachTitle(entry, obj)
-        # set points
+        self.attachTitleLen(obj)
         self.attachPoints(entry, obj)
-        # set comments
         self.attachNumComments(entry,obj)
 
     def getEntries(self):
+        # pull the entries on ycombinator
         return self.soup.find_all('tr','athing')
 
     def createBaseList(self):
+        # create a list of the first 30 entries
         entry = self.getEntries()
         for i in range(30):
             item = Item()
             self.setAttributes(entry[i], item)
             self.objList.append(item)
 
+    def longerThanFive(self):
+        # build the longer than 5 word title list ordered by commments
+        for i in self.objList:
+            if(i.getTitleLength()>5):
+                self.longerThan.append(i)
+        self.longerThan.sort(key=lambda x: x.numComments, reverse=True)
 
-Scraper().createBaseList()
+    def getLongerThanFive(self):
+        # print the longer than five word title list
+        self.longerThanFive()
+        print('Entries with more than five words in title, ordered by number of comments \n')
+        count=1
+        for i in self.longerThan:
+            print("Rank by number of comments: ", count)
+            print("Title: ", i.getTitle())
+            print("Rank: ", i.getOrderNum())
+            print("Points: ", i.getPoints())
+            print("Comments: ", i.getNumComments())
+            print("\n")
+            count+=1
+
+    def lessThanFive(self):
+        # build the less than five word title list ordered by points
+        for i in self.objList:
+            if(i.getTitleLength()<=5):
+                self.lessThan.append(i)
+        self.lessThan.sort(key=lambda x: x.points, reverse=True)
+
+
+    def getLessThanFive(self):
+        # print the less than five word title list
+        self.lessThanFive()
+        print('Entries with less than five words in title, ordered by number of points \n')
+        count=1
+        for i in self.lessThan:
+            print("Rank by number of points: ", count)
+            print("Title: ", i.getTitle())
+            print("Original Rank: ", i.getOrderNum())
+            print("Points: ", i.getPoints())
+            print("Comments: ", i.getNumComments())
+            print("\n")
+            count+=1
+
+
+if __name__ == "__main__":
+    S = Scraper()
+    S.createBaseList()
+    S.getLongerThanFive()
+    S.getLessThanFive()
