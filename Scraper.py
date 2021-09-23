@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # The instructions are below for a web-crawling exercise:
 #
 # Using the language that you feel most proficient in, you’ll have to create a
@@ -91,7 +94,7 @@ class Scraper:
             data = self.formatData(data)
             obj.setPoints(data)
         else:
-            obj.setNumComments(0)
+            obj.setPoints(0)
 
     def attachNumComments(self, entry, obj):
         data = entry.next_sibling.select('a:nth-of-type(3)')
@@ -115,6 +118,13 @@ class Scraper:
         # pull the entries on ycombinator
         return self.soup.find_all('tr','athing')
 
+    def printPost(self, item):
+        print("Title: ", item.getTitle())
+        print("Original Rank: ", item.getOrderNum())
+        print("Points: ", item.getPoints())
+        print("Comments: ", item.getNumComments())
+        print("\n")
+
     def createBaseList(self):
         # create a list of the first 30 entries
         entry = self.getEntries()
@@ -122,6 +132,13 @@ class Scraper:
             item = Item()
             self.setAttributes(entry[i], item)
             self.objList.append(item)
+
+    def printBaseList(self):
+        print('First 30 posts from ycombinator'.upper())
+        count = 1
+        for i in self.objList:
+            self.printPost(i)
+            count += 1
 
     def longerThanFive(self):
         # build the longer than 5 word title list ordered by commments
@@ -133,15 +150,11 @@ class Scraper:
     def getLongerThanFive(self):
         # print the longer than five word title list
         self.longerThanFive()
-        print('Entries with more than five words in title, ordered by number of comments \n')
+        print('Entries with more than five words in title, ordered by number of comments \n'.upper())
         count=1
         for i in self.longerThan:
             print("Rank by number of comments: ", count)
-            print("Title: ", i.getTitle())
-            print("Rank: ", i.getOrderNum())
-            print("Points: ", i.getPoints())
-            print("Comments: ", i.getNumComments())
-            print("\n")
+            self.printPost(i)
             count+=1
 
     def lessThanFive(self):
@@ -155,20 +168,17 @@ class Scraper:
     def getLessThanFive(self):
         # print the less than five word title list
         self.lessThanFive()
-        print('Entries with less than five words in title, ordered by number of points \n')
+        print('Entries with less than five words in title, ordered by number of points \n'.upper())
         count=1
         for i in self.lessThan:
             print("Rank by number of points: ", count)
-            print("Title: ", i.getTitle())
-            print("Original Rank: ", i.getOrderNum())
-            print("Points: ", i.getPoints())
-            print("Comments: ", i.getNumComments())
-            print("\n")
+            self.printPost(i)
             count+=1
 
 
 if __name__ == "__main__":
     S = Scraper()
     S.createBaseList()
+    S.printBaseList()
     S.getLongerThanFive()
     S.getLessThanFive()
